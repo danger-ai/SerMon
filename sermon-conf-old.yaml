@@ -1,0 +1,61 @@
+AgileISP:
+  alert: false
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+Agile_DB_1:
+  alert: false
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+Agile_DB_2:
+  alert: false
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+Agile_DB_3:
+  alert: false
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+Google_Up:
+  alert: false
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+ThisShouldFail:
+  alert: null
+  last_alert: null
+  last_alert_count: 0
+  last_alert_start: null
+servers:
+- con_type: plain
+  host: google.com
+  name: Google Up
+  port: 80
+  priority: high
+  timeout: 1000
+- con_type: ssl
+  host: agileisp.com
+  name: AgileISP
+  port: 443
+  priority: high
+  timeout: 1000
+- con_type: plain
+  host: 100.101.0.23
+  name: Agile DB 1
+  port: 3306
+  priority: high
+  timeout: 1000
+- con_type: plain
+  host: 10.100.70.248
+  name: Agile DB 2
+  port: 3306
+  priority: high
+  timeout: 1000
+- con_type: plain
+  host: 10.100.72.6
+  name: Agile DB 3
+  port: 3306
+  priority: high
+  timeout: 1000

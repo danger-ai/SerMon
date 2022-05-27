@@ -9,7 +9,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class ConfQuick:
     def __init__(self, app_name: str = "general", default_defs: Optional[dict] = None,
-                 notes: Optional[dict] = None, custom_file_path: str = None, django=False, debug=False):
+                 notes: Optional[dict] = None, custom_file_path: str = None,
+                 django=False, debug=False):
         """
         Initialize and load the ConfQuick object. if no arguments are supplied, example values will be used
         :param app_name: used to generate config file names, examples and the initial django secret key
@@ -44,9 +45,9 @@ class ConfQuick:
             result = self.apply(merge=True)
             if self.debug:
                 print(f"Loaded {self.conf_file.split('/')[-1]}!")
-            if result:
-                print("Warning: Encountered the following issues:")
-                print("\n".join(result))
+                if result:
+                    print("Warning: Encountered the following issues:")
+                    print("\n".join(result))
         else:
             if self.debug:
                 print("Configuration file not found.")

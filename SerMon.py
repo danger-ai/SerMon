@@ -79,8 +79,7 @@ class SerMon:
         self.priority = kwargs.get('priority', 'high').lower()
         self.timeout = kwargs.get('timeout', 1000)
 
-        self.smtp_settings = kwargs.get('smtp_server', {})
-        self.recipients = kwargs.get('recipients', [])
+        self.distribution_groups = kwargs.get('distribution_groups', {})
 
         self.alert = kwargs.get('alert')
         self.last_alert = kwargs.get('last_alert')
@@ -127,6 +126,7 @@ class SerMon:
                 sub_keys = list(sub_groups.keys())
                 for sub_name in sub_keys:
                     sub_smtp_name = sub_groups[sub_name].get('smtp_server', {}).get('name')
+                    # TODO: Fix Recipient Inheritance... broken??!?
                     if sub_smtp_name == smtp_name:  # merge recipient list
                         for recipient in sub_groups[sub_name].get('recipients', []):
                             if recipient not in rec_list:
@@ -142,7 +142,9 @@ class SerMon:
         cn = socket.create_connection((self.host, self.port), timeout=self.timeout)
         return ssl.wrap_socket(cn) if use_ssl else cn
 
-    def _save_log(self, text):
+    def _save_log(self, text, show=False):
+        if show:
+            print(text)
         with open(self.logname, "a") as f:
             f.write(f"{text}\n")
 
@@ -171,35 +173,40 @@ class SerMon:
 
     def _send_notification(self, subject, message):
         from email.mime.text import MIMEText as Message
-        secure_mode = self.smtp_settings.get("secure_mode", 'plain')
-        from_email = self.smtp_settings.get("email")
+        for k, v in self.distribution_groups.items():
+            smtp = v.get('smtp_server', {})
+            recipients = v.get('recipients', [])
+            secure_mode = smtp.get("secure_mode", 'plain')
+            from_email = smtp.get("email")
 
-        if secure_mode == 'ssl':
-            from smtplib import SMTP_SSL as SMTP
-        else:
-            from smtplib import SMTP
+            if secure_mode == 'ssl':
+                from smtplib import SMTP_SSL as SMTP
+            else:
+                from smtplib import SMTP
 
-        try:
-            msg = Message(message, "plain")
-            msg["Subject"] = subject
-            msg["From"] = from_email
-            cn = SMTP(self.smtp_settings.get("host"), self.smtp_settings.get("port"))
             try:
-                cn.ehlo()
-                if secure_mode == 'tls':
-                    cn.starttls()
+                msg = Message(message, "plain")
+                msg["Subject"] = subject
+                msg["From"] = from_email
+                cn = SMTP(smtp.get("host"), smtp.get("port"))
+                try:
                     cn.ehlo()
-                cn.login(self.smtp_settings.get("username"), self.smtp_settings.get("password"))
-                cn.sendmail(from_email, self.recipients, msg.as_string())
-            finally:
-                cn.quit()
-        except Exception as ex:
-            self._save_log(f"{datetime.now().strftime(self.timestamp_format)} - {repr(ex)}")
+                    if secure_mode == 'tls':
+                        cn.starttls()
+                        cn.ehlo()
+                    cn.login(smtp.get("username"), smtp.get("password"))
+                    cn.sendmail(from_email, recipients, msg.as_string())
+                finally:
+                    cn.quit()
+            except Exception as ex:
+                self._save_log(f"{datetime.now().strftime(self.timestamp_format)} - "
+                               f"Distribution Group: {k} FAILED: {repr(ex)}", True)
 
     def check_connection(self):
         message = ""
         success = False
         now = datetime.now()
+        alert_over = False
 
         try:
             if self.conn_type == "ping":
@@ -225,6 +232,7 @@ class SerMon:
             # send the message here
         elif success is True and self.alert is True:
             self.alert = False
+            alert_over = True
         elif success is False and self.alert is True:
             if str(self.alert_count).isnumeric():
                 self.alert_count += 1
@@ -235,8 +243,15 @@ class SerMon:
         try:
             self._save_state()
             self._save_log(f"{now.strftime(self.timestamp_format)} - {message}")
-            if self.alert:
-                self._send_notification(f"{message}", f"{now.strftime(self.timestamp_format)} - {message}")
+            if self.alert and (self.alert_count == 1 or self.alert_count % 10 == 0):  # TODO: need to add options
+                print("Alert In-Progress Notification Triggered.")
+                self._send_notification(f"{self.name} - Alert! [{self.alert_count}] - Started: {self.alert_start}",
+                                        f"{now.strftime(self.timestamp_format)} - {message}")
+            elif alert_over:
+                print("Alert Complete Notification Triggered.")
+                self._send_notification(
+                    f"{self.name} - Cancelled Alert. [{self.alert_count}] - Started: {self.alert_start}",
+                    f"{now.strftime(self.timestamp_format)} - {message}")
         except Exception as e:
             message += f"\n{repr(e)}"
         return message

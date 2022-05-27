@@ -215,7 +215,6 @@ class SerMon:
                 self._connection(self.conn_type == "ssl")
                 success = True
             if success:
-                self.alert = False
                 message = f"{self.name} is up! {self.host}:{self.port} using {self.conn_type}"
         except socket.timeout:
             message = f"{self.name} connection timed out! {self.host}:{self.port} using {self.conn_type}"
@@ -245,12 +244,12 @@ class SerMon:
             self._save_log(f"{now.strftime(self.timestamp_format)} - {message}")
             if self.alert and (self.alert_count == 1 or self.alert_count % 10 == 0):  # TODO: need to add options
                 print("Alert In-Progress Notification Triggered.")
-                self._send_notification(f"{self.name} - Alert! [{self.alert_count}] - Started: {self.alert_start}",
+                self._send_notification(f"{self.name} is DOWN! [{self.alert_count}] - Alert Started: {self.alert_start}",
                                         f"{now.strftime(self.timestamp_format)} - {message}")
             elif alert_over:
                 print("Alert Complete Notification Triggered.")
                 self._send_notification(
-                    f"{self.name} - Cancelled Alert. [{self.alert_count}] - Started: {self.alert_start}",
+                    f"{self.name} is BACK UP! [{self.alert_count}] - Alert Started: {self.alert_start}",
                     f"{now.strftime(self.timestamp_format)} - {message}")
         except Exception as e:
             message += f"\n{repr(e)}"
